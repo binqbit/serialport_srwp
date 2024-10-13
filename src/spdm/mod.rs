@@ -39,7 +39,7 @@ impl SerialPortDataManager {
         Ok(bytes_read)
     }
 
-    pub fn clear(&mut self) -> std::io::Result<()> {
+    pub fn clear(&self) -> std::io::Result<()> {
         self.port.clear(ClearBuffer::All)?;
         Ok(())
     }

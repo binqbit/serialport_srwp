@@ -1,9 +1,14 @@
+use std::{thread::sleep, time::{Duration, Instant}};
+
 use crate::spdm::SerialPortDataManager;
 
 const SRWP_CMD: u8 = 0x00;
 const CMD_TEST: u8 = 0x00;
 const CMD_READ: u8 = 0x01;
 const CMD_WRITE: u8 = 0x02;
+const MAX_BYTES_PER_SECOND: u64 = 9600 / 8;
+const MAX_BYTES_PER_TRANSACTION: u32 = 32;
+const MAX_TIME_PER_TRANSACTION: u64 = 1000 * MAX_BYTES_PER_TRANSACTION as u64 / MAX_BYTES_PER_SECOND;
 
 impl SerialPortDataManager {
     pub fn test(&mut self, data: &[u8]) -> std::io::Result<Vec<u8>> {
@@ -27,7 +32,7 @@ impl SerialPortDataManager {
         Ok(data)
     }
 
-    pub fn read_data(&mut self, address: u32, length: u32) -> std::io::Result<Vec<u8>> {
+    fn _read_data(&mut self, address: u32, length: u32) -> std::io::Result<Vec<u8>> {
         self.clear()?;
 
         let mut buffer = vec![0u8; 10];
@@ -44,12 +49,16 @@ impl SerialPortDataManager {
         self.write_data_terminal_ready(false)?;
 
         self.read_data_set_ready()?;
+        let mut count = 0u32;
         let mut data = vec![0u8; length as usize];
-        self.read(&mut data)?;
+        while count < data.len() as u32 {
+            let size = self.read(&mut data[count as usize..])?;
+            count += size as u32;
+        }
         Ok(data)
     }
 
-    pub fn write_data(&mut self, address: u32, data: &[u8]) -> std::io::Result<()> {
+    fn _write_data(&mut self, address: u32, data: &[u8]) -> std::io::Result<()> {
         self.clear()?;
 
         let mut buffer = vec![0u8; 10 + data.len()];
@@ -65,6 +74,38 @@ impl SerialPortDataManager {
         self.flush()?;
         self.write_request_to_send(false)?;
         self.write_data_terminal_ready(false)?;
+        Ok(())
+    }
+
+    pub fn read_data(&mut self, address: u32, length: u32) -> std::io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+        let mut count = 0u32;
+        while count < length {
+            let start_time = Instant::now();
+            let size = std::cmp::min(length - count, MAX_BYTES_PER_TRANSACTION);
+            let data_part = self._read_data(address + count, size)?;
+            data.extend_from_slice(&data_part);
+            count += size;
+            let elapsed = start_time.elapsed().as_millis() as u64;
+            if elapsed < MAX_TIME_PER_TRANSACTION {
+                sleep(Duration::from_millis(MAX_TIME_PER_TRANSACTION - elapsed));
+            }
+        }
+        Ok(data)
+    }
+
+    pub fn write_data(&mut self, address: u32, data: &[u8]) -> std::io::Result<()> {
+        let mut count = 0u32;
+        while count < data.len() as u32 {
+            let start_time = Instant::now();
+            let size = std::cmp::min(data.len() as u32 - count, MAX_BYTES_PER_TRANSACTION);
+            self._write_data(address + count, &data[count as usize..count as usize + size as usize])?;
+            count += size;
+            let elapsed = start_time.elapsed().as_millis() as u64;
+            if elapsed < MAX_TIME_PER_TRANSACTION {
+                sleep(Duration::from_millis(MAX_TIME_PER_TRANSACTION - elapsed));
+            }
+        }
         Ok(())
     }
 }
