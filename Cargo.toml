@@ -2,6 +2,13 @@
 name = "serialport_srwp"
 version = "2.0.0"
 edition = "2021"
+authors = ["Dmitry <binqbit@gmail.com>"]
+description = "A simple serial port protocol (SRWP) for read/write operations with the Blaustahl Storage Device. Enables memory access via basic commands for data transmission and device control."
+license = "MIT"
+repository = "https://github.com/binqbit/serialport_srwp"
+readme = "README.md"
+keywords = ["serialport", "protocol", "io"]
+categories = ["embedded"]
 
 [dependencies]
 serialport = "4.7.2"
