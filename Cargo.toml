@@ -1,7 +1,11 @@
 [package]
 name = "serialport_srwp"
-version = "1.0.0"
+version = "2.0.0"
 edition = "2021"
 
 [dependencies]
-serialport = "4.5.1"
+serialport = "4.7.2"
+
+[lib]
+name = "serialport_srwp"
+path = "src/lib.rs"
