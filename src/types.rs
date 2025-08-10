@@ -8,7 +8,7 @@ pub enum RecordDirection {
 impl SerialPortDataManager {
     pub fn read_value<T: Sized>(&mut self, address: u32) -> Result<T, DeviceError> {
         let size = std::mem::size_of::<T>();
-        let data = self.read_data(address, size as u32)?;
+        let data = self.read_data(address, size)?;
         let value = unsafe { std::ptr::read(data.as_ptr() as *const T) };
         Ok(value)
     }
@@ -18,15 +18,15 @@ impl SerialPortDataManager {
         address: u32,
         record_direction: RecordDirection,
     ) -> Result<Vec<T>, DeviceError> {
-        let size = self.read_value::<u32>(address)?;
+        let size = self.read_value::<usize>(address)?;
         if size == 0 {
             return Ok(Vec::new());
         }
-        let value_size = std::mem::size_of::<T>() as u32;
+        let value_size = std::mem::size_of::<T>();
         let data = match record_direction {
             RecordDirection::Right => self.read_data(address + 4, size * value_size)?,
             RecordDirection::Left => {
-                self.read_data(address - size * value_size, size * value_size)?
+                self.read_data(address - (size * value_size) as u32, size * value_size)?
             }
         };
         let mut result = Vec::new();
@@ -57,15 +57,14 @@ impl SerialPortDataManager {
         let value_size = std::mem::size_of::<T>();
         let mut data = Vec::new();
         for item in values {
-            let value = unsafe {
-                std::slice::from_raw_parts(item as *const T as *const u8, value_size)
-            };
+            let value =
+                unsafe { std::slice::from_raw_parts(item as *const T as *const u8, value_size) };
             data.extend_from_slice(value);
         }
         match record_direction {
             RecordDirection::Right => self.write_data(address + 4, &data),
             RecordDirection::Left => {
-                self.write_data(address - values.len() as u32 * value_size as u32, &data)
+                self.write_data(address - (values.len() * value_size) as u32, &data)
             }
         }
     }

@@ -9,10 +9,10 @@ const SRWP_CMD: u8 = 0x00;
 const CMD_TEST: u8 = 0x00;
 const CMD_READ: u8 = 0x01;
 const CMD_WRITE: u8 = 0x02;
-const MAX_BYTES_PER_SECOND: u64 = 9600 / 8;
-const MAX_BYTES_PER_TRANSACTION: u32 = 32;
+const MAX_BYTES_PER_SECOND: usize = 9600 / 8;
+const MAX_BYTES_PER_TRANSACTION: usize = 32;
 const MAX_TIME_PER_TRANSACTION: u64 =
-    1000 * MAX_BYTES_PER_TRANSACTION as u64 / MAX_BYTES_PER_SECOND;
+    (1000 * MAX_BYTES_PER_TRANSACTION / MAX_BYTES_PER_SECOND) as u64;
 const MAX_ZERO_READ_COUNT: u32 = 10;
 
 impl SerialPortDataManager {
@@ -38,7 +38,7 @@ impl SerialPortDataManager {
         Ok(data)
     }
 
-    fn _read_data(&mut self, address: u32, length: u32) -> Result<Vec<u8>, DeviceError> {
+    fn _read_data(&mut self, address: u32, length: usize) -> Result<Vec<u8>, DeviceError> {
         let serial_port = self.get_serial_port()?;
         serial_port.clear()?;
 
@@ -57,11 +57,11 @@ impl SerialPortDataManager {
         serial_port.read_data_set_ready()?;
 
         let mut zero_read_count = 0u32;
-        let mut count = 0u32;
-        let mut data = vec![0u8; length as usize];
-        while count < data.len() as u32 {
-            let size = serial_port.read(&mut data[count as usize..])?;
-            count += size as u32;
+        let mut count = 0usize;
+        let mut data = vec![0u8; length];
+        while count < data.len() {
+            let size = serial_port.read(&mut data[count..])?;
+            count += size;
             if size == 0 {
                 zero_read_count += 1;
                 if zero_read_count > MAX_ZERO_READ_COUNT {
@@ -97,13 +97,13 @@ impl SerialPortDataManager {
         Ok(())
     }
 
-    pub fn read_data(&mut self, address: u32, length: u32) -> Result<Vec<u8>, DeviceError> {
+    pub fn read_data(&mut self, address: u32, length: usize) -> Result<Vec<u8>, DeviceError> {
         let mut data = Vec::new();
-        let mut count = 0u32;
+        let mut count = 0usize;
         while count < length {
             let start_time = Instant::now();
             let size = std::cmp::min(length - count, MAX_BYTES_PER_TRANSACTION);
-            let data_part = self._read_data(address + count, size)?;
+            let data_part = self._read_data(address + count as u32, size)?;
             data.extend_from_slice(&data_part);
             count += size;
             let elapsed = start_time.elapsed().as_millis() as u64;
@@ -115,14 +115,11 @@ impl SerialPortDataManager {
     }
 
     pub fn write_data(&mut self, address: u32, data: &[u8]) -> Result<(), DeviceError> {
-        let mut count = 0u32;
-        while count < data.len() as u32 {
+        let mut count = 0usize;
+        while count < data.len() {
             let start_time = Instant::now();
-            let size = std::cmp::min(data.len() as u32 - count, MAX_BYTES_PER_TRANSACTION);
-            self._write_data(
-                address + count,
-                &data[count as usize..count as usize + size as usize],
-            )?;
+            let size = std::cmp::min(data.len() - count, MAX_BYTES_PER_TRANSACTION);
+            self._write_data(address + count as u32, &data[count..count + size])?;
             count += size;
             let elapsed = start_time.elapsed().as_millis() as u64;
             if elapsed < MAX_TIME_PER_TRANSACTION {
