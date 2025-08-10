@@ -7,7 +7,10 @@ pub struct SerialPortDevice {
 impl SerialPortDataManager {
     pub fn find_devices() -> Result<Vec<SerialPortDevice>, DeviceError> {
         let ports = SerialPortDataManager::get_available_ports()?;
-        Ok(ports.into_iter().map(|port| SerialPortDevice::new(&port)).collect())
+        Ok(ports
+            .into_iter()
+            .map(|port| SerialPortDevice::new(&port))
+            .collect())
     }
 }
 

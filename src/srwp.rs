@@ -13,6 +13,7 @@ const MAX_BYTES_PER_SECOND: u64 = 9600 / 8;
 const MAX_BYTES_PER_TRANSACTION: u32 = 32;
 const MAX_TIME_PER_TRANSACTION: u64 =
     1000 * MAX_BYTES_PER_TRANSACTION as u64 / MAX_BYTES_PER_SECOND;
+const MAX_ZERO_READ_COUNT: u32 = 10;
 
 impl SerialPortDataManager {
     pub fn test(&mut self, data: &[u8]) -> Result<Vec<u8>, DeviceError> {
@@ -53,13 +54,25 @@ impl SerialPortDataManager {
         serial_port.flush()?;
         serial_port.write_request_to_send(false)?;
         serial_port.write_data_terminal_ready(false)?;
-
         serial_port.read_data_set_ready()?;
+
+        let mut zero_read_count = 0u32;
         let mut count = 0u32;
         let mut data = vec![0u8; length as usize];
         while count < data.len() as u32 {
             let size = serial_port.read(&mut data[count as usize..])?;
             count += size as u32;
+            if size == 0 {
+                zero_read_count += 1;
+                if zero_read_count > MAX_ZERO_READ_COUNT {
+                    return Err(DeviceError::IOError(std::io::Error::new(
+                        std::io::ErrorKind::TimedOut,
+                        "No data received from device",
+                    )));
+                }
+            } else {
+                zero_read_count = 0;
+            }
         }
         Ok(data)
     }

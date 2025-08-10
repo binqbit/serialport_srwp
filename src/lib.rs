@@ -1,12 +1,27 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
 use serialport::{ClearBuffer, DataBits, FlowControl, Parity, SerialPort, StopBits};
+use thiserror::Error;
 
-#[derive(Debug)]
+mod device;
+mod srwp;
+mod types;
+
+pub use device::*;
+pub use types::*;
+
+#[derive(Debug, Error)]
 pub enum DeviceError {
+    #[error("Device not found")]
     NotFound,
+    #[error("Serial port error")]
     SerialPortError(serialport::Error),
+    #[error("I/O error")]
     IOError(std::io::Error),
+    #[error("Port is locked")]
     PortIsLocked,
 }
 
@@ -25,6 +40,7 @@ impl SerialPortDataManager {
             .stop_bits(StopBits::One)
             .flow_control(FlowControl::None)
             .parity(Parity::None)
+            .timeout(Duration::from_millis(1000))
             .open()
             .map(|port| SerialPortBox { port })
             .map(Mutex::new)
@@ -108,10 +124,3 @@ impl SerialPortBox {
         self.port.flush().map_err(DeviceError::IOError)
     }
 }
-
-mod srwp;
-mod types;
-
-pub mod device;
-
-pub use types::*;
