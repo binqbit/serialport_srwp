@@ -15,6 +15,11 @@ const MAX_TIME_PER_TRANSACTION: u64 =
     (1000 * MAX_BYTES_PER_TRANSACTION / MAX_BYTES_PER_SECOND) as u64;
 const MAX_ZERO_READ_COUNT: u32 = 10;
 
+pub trait AddressedIo {
+    fn read_data(&mut self, address: u32, size: usize) -> Result<Vec<u8>, DeviceError>;
+    fn write_data(&mut self, address: u32, data: &[u8]) -> Result<(), DeviceError>;
+}
+
 impl SerialPortDataManager {
     pub fn test(&mut self, data: &[u8]) -> Result<Vec<u8>, DeviceError> {
         let serial_port = self.get_serial_port()?;
@@ -96,8 +101,10 @@ impl SerialPortDataManager {
         serial_port.write_data_terminal_ready(false)?;
         Ok(())
     }
+}
 
-    pub fn read_data(&mut self, address: u32, length: usize) -> Result<Vec<u8>, DeviceError> {
+impl AddressedIo for SerialPortDataManager {
+    fn read_data(&mut self, address: u32, length: usize) -> Result<Vec<u8>, DeviceError> {
         let mut data = Vec::new();
         let mut count = 0usize;
         while count < length {
@@ -114,7 +121,7 @@ impl SerialPortDataManager {
         Ok(data)
     }
 
-    pub fn write_data(&mut self, address: u32, data: &[u8]) -> Result<(), DeviceError> {
+    fn write_data(&mut self, address: u32, data: &[u8]) -> Result<(), DeviceError> {
         let mut count = 0usize;
         while count < data.len() {
             let start_time = Instant::now();

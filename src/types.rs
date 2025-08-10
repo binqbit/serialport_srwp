@@ -1,3 +1,5 @@
+use crate::srwp::AddressedIo;
+
 use super::{DeviceError, SerialPortDataManager};
 
 pub enum RecordDirection {
@@ -5,15 +7,15 @@ pub enum RecordDirection {
     Left,
 }
 
-impl SerialPortDataManager {
-    pub fn read_value<T: Sized>(&mut self, address: u32) -> Result<T, DeviceError> {
+pub trait TypedIoExt: AddressedIo {
+    fn read_value<T: Sized>(&mut self, address: u32) -> Result<T, DeviceError> {
         let size = std::mem::size_of::<T>();
         let data = self.read_data(address, size)?;
         let value = unsafe { std::ptr::read(data.as_ptr() as *const T) };
         Ok(value)
     }
 
-    pub fn read_values<T: Sized>(
+    fn read_values<T: Sized>(
         &mut self,
         address: u32,
         record_direction: RecordDirection,
@@ -38,13 +40,13 @@ impl SerialPortDataManager {
         Ok(result)
     }
 
-    pub fn write_value<T: Sized>(&mut self, address: u32, value: T) -> Result<(), DeviceError> {
+    fn write_value<T: Sized>(&mut self, address: u32, value: T) -> Result<(), DeviceError> {
         let size = std::mem::size_of::<T>();
         let data = unsafe { std::slice::from_raw_parts(&value as *const T as *const u8, size) };
         self.write_data(address, data)
     }
 
-    pub fn write_values<T: Sized>(
+    fn write_values<T: Sized>(
         &mut self,
         address: u32,
         values: &[T],
@@ -69,3 +71,5 @@ impl SerialPortDataManager {
         }
     }
 }
+
+impl TypedIoExt for SerialPortDataManager {}
