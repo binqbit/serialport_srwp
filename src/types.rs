@@ -32,8 +32,7 @@ pub trait TypedIoExt: AddressedIo {
             }
         };
         let mut result = Vec::new();
-        let value_size = value_size as usize;
-        for i in 0..size as usize {
+        for i in 0..size {
             let value = unsafe { std::ptr::read(data[i * value_size..].as_ptr() as *const T) };
             result.push(value);
         }
@@ -66,7 +65,7 @@ pub trait TypedIoExt: AddressedIo {
         match record_direction {
             RecordDirection::Right => self.write_data(address + 4, &data),
             RecordDirection::Left => {
-                self.write_data(address - (values.len() * value_size) as u32, &data)
+                self.write_data(address - std::mem::size_of_val(values) as u32, &data)
             }
         }
     }
