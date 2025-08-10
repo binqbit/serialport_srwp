@@ -11,6 +11,7 @@ mod srwp;
 mod types;
 
 pub use device::*;
+pub use srwp::*;
 pub use types::*;
 
 #[derive(Debug, Error)]

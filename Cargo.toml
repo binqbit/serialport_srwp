@@ -1,6 +1,6 @@
 [package]
 name = "serialport_srwp"
-version = "2.2.0"
+version = "2.2.1"
 edition = "2021"
 authors = ["Dmitry <binqbit@gmail.com>"]
 description = "A simple serial port protocol (SRWP) for read/write operations with the Blaustahl Storage Device. Enables memory access via basic commands for data transmission and device control."
