@@ -56,9 +56,9 @@ impl SerialPortDataManager {
         }
         let value_size = std::mem::size_of::<T>();
         let mut data = Vec::new();
-        for i in 0..values.len() {
+        for item in values {
             let value = unsafe {
-                std::slice::from_raw_parts(&values[i] as *const T as *const u8, value_size)
+                std::slice::from_raw_parts(item as *const T as *const u8, value_size)
             };
             data.extend_from_slice(value);
         }
