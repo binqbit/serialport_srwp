@@ -110,11 +110,6 @@ impl AddressedIo for SerialPortDataManager {
         while count < length {
             let start_time = Instant::now();
             let size = std::cmp::min(length - count, MAX_BYTES_PER_TRANSACTION);
-            println!(
-                "Reading {} bytes from address {}",
-                size,
-                address + count as u32
-            );
             let data_part = self._read_data(address + count as u32, size)?;
             data.extend_from_slice(&data_part);
             count += size;
