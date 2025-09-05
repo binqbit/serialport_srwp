@@ -20,7 +20,7 @@ pub trait TypedIoExt: AddressedIo {
         address: u32,
         record_direction: RecordDirection,
     ) -> Result<Vec<T>, DeviceError> {
-        let size = self.read_value::<usize>(address)?;
+        let size = self.read_value::<u32>(address)? as usize;
         if size == 0 {
             return Ok(Vec::new());
         }
@@ -51,7 +51,7 @@ pub trait TypedIoExt: AddressedIo {
         values: &[T],
         record_direction: RecordDirection,
     ) -> Result<(), DeviceError> {
-        self.write_value(address, values.len())?;
+        self.write_value(address, values.len() as u32)?;
         if values.is_empty() {
             return Ok(());
         }

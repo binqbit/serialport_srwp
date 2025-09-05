@@ -51,7 +51,7 @@ impl SerialPortDataManager {
         buffer[0] = SRWP_CMD;
         buffer[1] = CMD_READ;
         buffer[2..6].copy_from_slice(&address.to_le_bytes());
-        buffer[6..10].copy_from_slice(&length.to_le_bytes());
+        buffer[6..10].copy_from_slice(&(length as u32).to_le_bytes());
 
         serial_port.write_data_terminal_ready(true)?;
         serial_port.write_request_to_send(true)?;
