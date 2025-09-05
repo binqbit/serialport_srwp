@@ -1,5 +1,5 @@
 use std::{
-    sync::{Arc, Mutex},
+    sync::{Arc, RwLock, RwLockWriteGuard},
     time::Duration,
 };
 
@@ -32,7 +32,7 @@ pub struct SerialPortBox {
 }
 
 #[derive(Debug)]
-pub struct SerialPortDataManager(Arc<Mutex<SerialPortBox>>);
+pub struct SerialPortDataManager(Arc<RwLock<SerialPortBox>>);
 
 impl SerialPortDataManager {
     pub fn new(path: &str) -> Result<Self, DeviceError> {
@@ -44,7 +44,7 @@ impl SerialPortDataManager {
             .timeout(Duration::from_millis(1000))
             .open()
             .map(|port| SerialPortBox { port })
-            .map(Mutex::new)
+            .map(RwLock::new)
             .map(Arc::new)
             .map(SerialPortDataManager)
             .map_err(DeviceError::SerialPortError)
@@ -74,11 +74,8 @@ impl SerialPortDataManager {
             })
     }
 
-    pub fn get_serial_port(&mut self) -> Result<&mut SerialPortBox, DeviceError> {
-        Arc::get_mut(&mut self.0)
-            .ok_or(DeviceError::PortIsLocked)?
-            .get_mut()
-            .map_err(|_| DeviceError::PortIsLocked)
+    pub fn get_serial_port(&'_ self) -> Result<RwLockWriteGuard<'_, SerialPortBox>, DeviceError> {
+        self.0.write().map_err(|_| DeviceError::PortIsLocked)
     }
 }
 

@@ -16,13 +16,13 @@ const MAX_TIME_PER_TRANSACTION: u64 =
 const MAX_ZERO_READ_COUNT: u32 = 10;
 
 pub trait AddressedIo {
-    fn read_data(&mut self, address: u32, size: usize) -> Result<Vec<u8>, DeviceError>;
-    fn write_data(&mut self, address: u32, data: &[u8]) -> Result<(), DeviceError>;
+    fn read_data(&self, address: u32, size: usize) -> Result<Vec<u8>, DeviceError>;
+    fn write_data(&self, address: u32, data: &[u8]) -> Result<(), DeviceError>;
 }
 
 impl SerialPortDataManager {
-    pub fn test(&mut self, data: &[u8]) -> Result<Vec<u8>, DeviceError> {
-        let serial_port = self.get_serial_port()?;
+    pub fn test(&self, data: &[u8]) -> Result<Vec<u8>, DeviceError> {
+        let mut serial_port = self.get_serial_port()?;
         serial_port.clear()?;
 
         let mut buffer = vec![0u8; 6 + data.len()];
@@ -43,8 +43,8 @@ impl SerialPortDataManager {
         Ok(data)
     }
 
-    fn _read_data(&mut self, address: u32, length: usize) -> Result<Vec<u8>, DeviceError> {
-        let serial_port = self.get_serial_port()?;
+    fn _read_data(&self, address: u32, length: usize) -> Result<Vec<u8>, DeviceError> {
+        let mut serial_port = self.get_serial_port()?;
         serial_port.clear()?;
 
         let mut buffer = vec![0u8; 10];
@@ -82,8 +82,8 @@ impl SerialPortDataManager {
         Ok(data)
     }
 
-    fn _write_data(&mut self, address: u32, data: &[u8]) -> Result<(), DeviceError> {
-        let serial_port = self.get_serial_port()?;
+    fn _write_data(&self, address: u32, data: &[u8]) -> Result<(), DeviceError> {
+        let mut serial_port = self.get_serial_port()?;
         serial_port.clear()?;
 
         let mut buffer = vec![0u8; 10 + data.len()];
@@ -104,12 +104,17 @@ impl SerialPortDataManager {
 }
 
 impl AddressedIo for SerialPortDataManager {
-    fn read_data(&mut self, address: u32, length: usize) -> Result<Vec<u8>, DeviceError> {
+    fn read_data(&self, address: u32, length: usize) -> Result<Vec<u8>, DeviceError> {
         let mut data = Vec::new();
         let mut count = 0usize;
         while count < length {
             let start_time = Instant::now();
             let size = std::cmp::min(length - count, MAX_BYTES_PER_TRANSACTION);
+            println!(
+                "Reading {} bytes from address {}",
+                size,
+                address + count as u32
+            );
             let data_part = self._read_data(address + count as u32, size)?;
             data.extend_from_slice(&data_part);
             count += size;
@@ -121,7 +126,7 @@ impl AddressedIo for SerialPortDataManager {
         Ok(data)
     }
 
-    fn write_data(&mut self, address: u32, data: &[u8]) -> Result<(), DeviceError> {
+    fn write_data(&self, address: u32, data: &[u8]) -> Result<(), DeviceError> {
         let mut count = 0usize;
         while count < data.len() {
             let start_time = Instant::now();
